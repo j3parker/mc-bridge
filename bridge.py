@@ -27,6 +27,7 @@ def minecraftToIrc():
 	lines = follow(open(mcDir + '/out'))
 	reInfo = re.compile('^\[\d+:\d+:\d+\] \[Server thread/INFO\]: (.*)$')
 	reChat = re.compile('^<([^>]*)> (.*)$')
+	reZeroPlayers = re.compile('There are 0/\d+ players online:')
 	for line in lines:
 		m = reInfo.search(line)
 		if not(m):
@@ -37,6 +38,9 @@ def minecraftToIrc():
 		lock.acquire()
 		try:
 			if infoCount > 0:
+				m = reZeroPlayers.search(msg)
+				if m:
+					infoCount -= 1
 				infoCount -= 1
 				sendToIrc(msg)
 				continue
@@ -44,7 +48,7 @@ def minecraftToIrc():
 			lock.release()
 
 		# Handle chats
-		m = reInfo.search(msg)
+		m = reChat.search(msg)
 		if not(m):
 			continue
 		name = m.groups()[0]
@@ -52,10 +56,20 @@ def minecraftToIrc():
 
 		sendToIrc('<' + name + '> ' + text)
 
+def sendToMinecraft(msg):
+	mc = open(mcDir + '/in','w')
+	mc.write(msg + '\n')
+	mc.close()
+	
+	time.sleep(1) # what am i doinggggggggg weird behaviour hacks
+
+	mc = open(mcDir + '/in', 'w')
+	mc.close()
+
 def ircToMinecraft():
 	global infoCount, lock
 	lines = follow(open(ircDir+ '/out'))
-	regex = re.compile('\d+-\d+-\d+ \d+:\d+ <([^>]+)> ([^\s]*)(\s?)(.*)')
+	regex = re.compile('\d+-\d+-\d+ \d+:\d+ <([^>]+)> ([^\s]*)(\s?)(.*)\n')
 	for line in lines:
 		m = regex.search(line)
 		if not(m):
@@ -68,23 +82,15 @@ def ircToMinecraft():
 		if name == 'minecraft':
 			continue
 
-		mc = open(mcDir + '/in', 'w')
 		if cmd == 'playsound':
-			mc.write('/playsound ' + text + '\n')
+			sendToMinecraft('/playsound ' + text)
 		elif cmd == 'list' and text == '':
 			lock.acquire()
-			infoCount += 3
+			infoCount += 2
 			lock.release()
-			mc.write('/list\n')
+			sendToMinecraft('/list')
 		else:
-			mc.write('/say ' + name + ': ' + cmd + sp + text + '\n')
-		mc.close()
-
-		time.sleep(1) # what am i doinggggggggg weird behaviour hacks
-
-		mc = open(mcDir + '/in', 'w')
-		mc.write('\n')
-		mc.close()
+			sendToMinecraft('/say ' + name + ': ' + cmd + sp + text)
 
 mcDir = sys.argv[1]
 ircDir = sys.argv[2]
