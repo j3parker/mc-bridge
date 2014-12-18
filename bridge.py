@@ -42,7 +42,7 @@ def minecraftToIrc():
 				if m:
 					infoCount -= 1
 				infoCount -= 1
-				sendToIrc(msg)
+				sendToIrc('| ' + msg)
 				continue
 		finally:
 			lock.release()
