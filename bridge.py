@@ -93,8 +93,5 @@ if __name__ == '__main__':
 	t1 = threading.Thread(target = minecraftToIrc)
 	t1.daemon = True
 	t1.start()
-	t2 = threading.Thread(target = ircToMinecraft)
-	t2.daemon = True
-	t2.start()
-	while True:
-		time.sleep(10)
+	
+	ircToMinecraft()
